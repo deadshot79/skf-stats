@@ -1,2 +1,3 @@
-{"updatedAt":null,"server":"skf","matches":[
+{"updatedAt":"2026-11-01T21:39:39.092Z","server":"skf","matches":[
+{"id":"match_1793568501912_hfpodgw0y","matchId":"12310c82-5c92-4b9d-848a-127f56e432aa","map":"eyetoeye","gameType":"CA","playedAt":"2026-11-01T21:28:21.000Z","duration":204,"serverName":"www.quakeclub.com | SkF乂","team1Score":2,"team2Score":10,"rated":true,"players":[{"steamId":"76561198180211110","name":"Deadshot","team":2,"kills":4,"deaths":2,"score":28,"damageDealt":2613,"damageTaken":2200,"rounds":11,"roundsWon":0,"performance":27.3,"eloChange":0,"clan":"SKF乂","weapons":{"RL":{"hits":30,"shots":36,"kills":1,"damage":1623},"LG":{"hits":125,"shots":187,"kills":2,"damage":750},"RG":{"hits":3,"shots":4,"kills":1,"damage":240}},"medals":{"accuracy":11,"impressive":1}}]}
 ]}
