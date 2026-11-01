@@ -1,0 +1,66 @@
+name: Estadísticas SkF
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+concurrency:
+  group: skf-stats
+  cancel-in-progress: false
+
+jobs:
+  actualizar:
+    runs-on: ubuntu-latest
+    outputs:
+      cambio: ${{ steps.guardar.outputs.cambio }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Buscar partidas nuevas
+        env:
+          SERVER_FILTER: "SkF"
+        run: node scripts/update.mjs
+
+      - name: Guardar datos nuevos
+        id: guardar
+        run: |
+          if [ -n "$(git status --porcelain site/data)" ]; then
+            git config user.name "skf-stats-bot"
+            git config user.email "actions@users.noreply.github.com"
+            git add site/data
+            git commit -m "Partidas nuevas"
+            git push
+            echo "cambio=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "cambio=false" >> "$GITHUB_OUTPUT"
+          fi
+
+  publicar:
+    needs: actualizar
+    if: needs.actualizar.outputs.cambio == 'true' || github.event_name != 'schedule'
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deploy.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: site
+      - id: deploy
+        uses: actions/deploy-pages@v4
