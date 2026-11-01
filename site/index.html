@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Tablero del Dragón · SkF</title>
+<meta name="description" content="Estadísticas de los guerreros de Shaolin Kung Fu en Quake Live.">
+<meta name="color-scheme" content="dark">
+<style>
+:root{
+  --bg:#0c0e13; --panel:#151922; --panel2:#1b2030; --line:#262c3b;
+  --text:#e9ecf3; --muted:#9aa3b8; --red:#e0483a; --cyan:#22d3ee;
+  --win:#4ade80; --loss:#f87171; --gold:#f5c451;
+  --r:14px;
+}
+*{box-sizing:border-box}
+html{color-scheme:dark}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.5 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  background-image:radial-gradient(900px 400px at 85% -10%,rgba(224,72,58,.12),transparent 60%),radial-gradient(700px 360px at 0% 0%,rgba(34,211,238,.07),transparent 60%)}
+a{color:var(--cyan)}
+:focus-visible{outline:2px solid var(--cyan);outline-offset:2px;border-radius:6px}
+.wrap{max-width:1100px;margin:0 auto;padding:0 16px}
+
+header.top{border-bottom:1px solid var(--line);position:relative}
+header.top::before{content:"";position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,var(--cyan) 0 55%,var(--red) 55% 100%)}
+.top .wrap{display:flex;flex-wrap:wrap;align-items:center;gap:14px 24px;padding-top:22px;padding-bottom:18px}
+.back{font-size:13px;color:var(--muted);text-decoration:none;order:3;margin-left:auto}
+.back:hover{color:var(--text)}
+.brand{display:flex;align-items:center;gap:14px}
+.glyph{font-size:44px;line-height:1;color:var(--red);font-family:"Noto Serif SC","Songti SC","SimSun",serif;text-shadow:0 0 24px rgba(224,72,58,.45)}
+h1{margin:0;font-size:26px;letter-spacing:.02em;line-height:1.15}
+.brand p{margin:2px 0 0;color:var(--muted);font-size:13px}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:22px 0 8px}
+.kpi{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.kpi small{display:block;color:var(--muted);font-size:11px;letter-spacing:.09em;text-transform:uppercase}
+.kpi b{display:block;font-size:24px;margin-top:2px;font-variant-numeric:tabular-nums}
+.kpi b.sm{font-size:17px;padding-top:6px}
+
+.tabs{display:flex;gap:6px;margin:22px 0 14px;border-bottom:1px solid var(--line)}
+.tabs button{background:none;border:0;color:var(--muted);font:inherit;font-weight:600;padding:10px 16px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px}
+.tabs button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--red)}
+.tabs button:hover{color:var(--text)}
+
+.tools{display:flex;gap:10px;align-items:center;margin-bottom:12px;flex-wrap:wrap}
+.tools input{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 14px;font:inherit}
+.tools input::placeholder{color:var(--muted)}
+.hint{color:var(--muted);font-size:13px}
+
+.tablebox{background:var(--panel);border:1px solid var(--line);border-radius:var(--r);overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:760px;font-variant-numeric:tabular-nums}
+th,td{padding:11px 12px;text-align:right;white-space:nowrap}
+th:nth-child(1),td:nth-child(1){text-align:center;width:44px;color:var(--muted)}
+th:nth-child(2),td:nth-child(2){text-align:left}
+thead th{padding:0;border-bottom:1px solid var(--line);background:var(--panel2);font-weight:600}
+thead th:first-child{padding:11px 12px;color:var(--muted)}
+thead button{all:unset;box-sizing:border-box;display:block;width:100%;padding:11px 12px;cursor:pointer;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase;text-align:inherit}
+thead button:hover{color:var(--text)}
+thead button:focus-visible{outline:2px solid var(--cyan);outline-offset:-2px}
+thead th[aria-sort="ascending"] button::after{content:" ▲";color:var(--red)}
+thead th[aria-sort="descending"] button::after{content:" ▼";color:var(--red)}
+tbody tr{border-bottom:1px solid #1d2230;cursor:pointer}
+tbody tr:last-child{border-bottom:0}
+tbody tr:hover,tbody tr:focus-visible{background:#1a2030}
+td.name{font-weight:600}
+td.name .tag{color:var(--muted);font-weight:500;margin-right:6px}
+.pos{color:var(--win)} .neg{color:var(--loss)} .dim{color:var(--muted)}
+.medal{font-size:16px}
+
+.empty{padding:44px 20px;text-align:center;color:var(--muted)}
+.empty b{display:block;color:var(--text);font-size:18px;margin-bottom:6px}
+
+/* partidas */
+.mlist{display:grid;gap:10px}
+details.match{background:var(--panel);border:1px solid var(--line);border-radius:var(--r)}
+details.match summary{list-style:none;cursor:pointer;display:grid;grid-template-columns:1fr auto;gap:2px 14px;padding:14px 16px;align-items:center}
+details.match summary::-webkit-details-marker{display:none}
+.m-map{font-weight:700;font-size:16px}
+.m-sub{color:var(--muted);font-size:13px}
+.m-score{font-size:22px;font-weight:800;font-variant-numeric:tabular-nums;grid-row:1/3;grid-column:2;text-align:right}
+.m-score .r{color:var(--loss)} .m-score .b{color:var(--cyan)}
+.badge{display:inline-block;font-size:11px;font-weight:700;letter-spacing:.06em;border:1px solid var(--line);border-radius:6px;padding:1px 7px;margin-left:8px;color:var(--muted);vertical-align:middle}
+.teams{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:12px;padding:0 16px 16px}
+.team h4{margin:0 0 6px;font-size:12px;letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.team h4 i{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
+.team table{min-width:0;font-size:14px}
+.team th,.team td{padding:6px 8px}
+.team thead th{background:none;color:var(--muted);font-size:11px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;padding:6px 8px}
+.team td:first-child,.team th:first-child{text-align:left;width:auto;color:inherit}
+.team tbody tr{cursor:pointer}
+.more{display:block;margin:14px auto 0;background:var(--panel);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 20px;font:inherit;cursor:pointer}
+.more:hover{border-color:var(--cyan)}
+
+/* perfil */
+dialog{width:min(780px,94vw);max-height:90vh;padding:0;border:1px solid var(--line);border-radius:18px;background:var(--panel);color:var(--text);overflow:hidden}
+dialog::backdrop{background:rgba(5,6,10,.75)}
+.pbox{max-height:90vh;overflow:auto;padding:22px}
+.phead{display:flex;align-items:flex-start;gap:14px;justify-content:space-between;margin-bottom:16px}
+.phead h2{margin:0;font-size:24px;line-height:1.2}
+.phead .tag{color:var(--muted);font-weight:500}
+.phead p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.close{background:var(--panel2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:8px 14px;font:inherit;cursor:pointer}
+.close:hover{border-color:var(--red)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-bottom:18px}
+.stat{background:var(--bg);border:1px solid var(--line);border-radius:12px;padding:11px 13px}
+.stat small{display:block;color:var(--muted);font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+.stat b{font-size:21px;font-variant-numeric:tabular-nums}
+h3.sec{margin:18px 0 8px;font-size:12px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.form{display:flex;gap:5px;flex-wrap:wrap}
+.form i{width:18px;height:18px;border-radius:5px;display:block}
+.form .w{background:var(--win)} .form .l{background:var(--loss)} .form .d{background:var(--muted)}
+.wrow{display:grid;grid-template-columns:150px 1fr 150px;gap:12px;align-items:center;padding:5px 0;font-size:14px}
+.wrow .bar{height:9px;background:var(--bg);border-radius:6px;overflow:hidden;border:1px solid var(--line)}
+.wrow .bar span{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),#38bdf8)}
+.wrow .val{text-align:right;font-variant-numeric:tabular-nums;color:var(--muted)}
+.wrow .val b{color:var(--text)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--bg);border:1px solid var(--line);border-radius:999px;padding:3px 12px;font-size:13px}
+.chip b{color:var(--gold)}
+.recent{width:100%;border-collapse:collapse;min-width:0;font-size:14px}
+.recent th,.recent td{padding:7px 8px;text-align:right}
+.recent th:first-child,.recent td:first-child,.recent th:nth-child(2),.recent td:nth-child(2){text-align:left;width:auto;color:inherit}
+.recent thead th{background:none;color:var(--muted);font-size:11px;letter-spacing:.06em;text-transform:uppercase;font-weight:600}
+.recent tbody tr{cursor:default;border-bottom:1px solid #1d2230}
+.recent tbody tr:hover{background:none}
+.scroll{overflow-x:auto}
+footer{color:var(--muted);font-size:12px;text-align:center;padding:30px 16px 40px}
+
+@media (max-width:620px){
+  h1{font-size:22px}.glyph{font-size:36px}
+  .wrow{grid-template-columns:96px 1fr;}
+  .wrow .val{grid-column:1/3;text-align:left;margin-top:-4px}
+  .pbox{padding:16px}
+}
+@media (prefers-reduced-motion:no-preference){
+  dialog[open]{animation:pop .16s ease-out}
+  @keyframes pop{from{opacity:0;transform:translateY(8px) scale(.98)}to{opacity:1;transform:none}}
+}
+</style>
+</head>
+<body>
+<header class="top">
+  <div class="wrap">
+    <div class="brand">
+      <span class="glyph" aria-hidden="true">龍</span>
+      <div>
+        <h1>Tablero del Dragón</h1>
+        <p>Estadísticas de los guerreros de Shaolin Kung Fu · Quake Live</p>
+      </div>
+    </div>
+    <a class="back" href="https://skfclan.com">← Volver a skfclan.com</a>
+  </div>
+</header>
+
+<main class="wrap">
+  <noscript><p class="empty">Esta página necesita JavaScript para mostrar las estadísticas.</p></noscript>
+  <section class="kpis" id="kpis" aria-label="Resumen"></section>
+
+  <div class="tabs" role="tablist" aria-label="Secciones">
+    <button role="tab" id="tab-rank" aria-selected="true" aria-controls="view-rank">Ranking</button>
+    <button role="tab" id="tab-matches" aria-selected="false" aria-controls="view-matches" tabindex="-1">Partidas</button>
+  </div>
+
+  <section id="view-rank" role="tabpanel" aria-labelledby="tab-rank">
+    <div class="tools">
+      <input id="q" type="search" placeholder="Buscar guerrero…" aria-label="Buscar guerrero" autocomplete="off">
+      <span class="hint">Toca un guerrero para ver su perfil. Toca una columna para ordenar.</span>
+    </div>
+    <div class="tablebox" id="rankbox"></div>
+  </section>
+
+  <section id="view-matches" role="tabpanel" aria-labelledby="tab-matches" hidden>
+    <div class="mlist" id="mlist"></div>
+    <button class="more" id="more" hidden>Ver más partidas</button>
+  </section>
+</main>
+
+<footer>Se actualiza sola cada pocos minutos con los datos públicos de Quake Club.</footer>
+
+<dialog id="profile" aria-label="Perfil del guerrero"></dialog>
+
+<script>
+(function(){
+"use strict";
+var DATA_URL="data/matches.json";
+var REFRESH_MS=5*60*1000;
+
+var $=function(s){return document.querySelector(s)};
+var esc=function(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})};
+var clean=function(n){return String(n||"").replace(/\^[0-9]/g,"")||"?"};
+var nf0=new Intl.NumberFormat("es-CL",{maximumFractionDigits:0});
+var nf1=new Intl.NumberFormat("es-CL",{minimumFractionDigits:1,maximumFractionDigits:1});
+var nf2=new Intl.NumberFormat("es-CL",{minimumFractionDigits:2,maximumFractionDigits:2});
+var dfmt=new Intl.DateTimeFormat("es-CL",{day:"2-digit",month:"short",hour:"2-digit",minute:"2-digit",timeZone:"America/Santiago"});
+var fmtDate=function(iso){var d=new Date(iso);return isNaN(d)?"":dfmt.format(d)};
+var fmtDur=function(s){s=Math.round(s||0);return s?Math.floor(s/60)+":"+String(s%60).padStart(2,"0"):""};
+var pct=function(a,b){return b>0?a/b*100:0};
+var pretty=function(s){s=String(s||"?");return s.charAt(0).toUpperCase()+s.slice(1)};
+var signed=function(n){return n>0?"+"+nf0.format(n):nf0.format(n)};
+
+var WEAPONS={GT:"Guantelete",MG:"Ametralladora",SG:"Escopeta",GL:"Granadas",RL:"Cohetes",LG:"Rayo",RG:"Railgun",PG:"Plasma",HMG:"Ametralladora pesada"};
+var MEDALS={impressive:"Impressive",excellent:"Excellent",accuracy:"Precisión",headshot:"Headshot",humiliation:"Humillación",combokill:"Combo",firstfrag:"Primera sangre",perfect:"Perfect",rampage:"Rampage",midair:"Aéreo",revenge:"Venganza",perforated:"Perforado",quadgod:"Quad God",assists:"Asistencias",captures:"Capturas",defends:"Defensas"};
+
+var MATCHES=[], AGG=new Map(), UPDATED=null;
+var sort={key:"wins",dir:-1};
+var shown=20;
+
+/* ---------- cálculo ---------- */
+function aggregate(matches){
+  var map=new Map();
+  matches.forEach(function(m){
+    if(m.aborted) return;
+    (m.players||[]).forEach(function(p){
+      if(p.team!==1&&p.team!==2) return;
+      var a=map.get(p.steamId);
+      if(!a){
+        a={steamId:p.steamId,name:clean(p.name),clan:p.clan||null,games:0,wins:0,losses:0,draws:0,kills:0,deaths:0,
+           dmgDealt:0,dmgTaken:0,rounds:0,perfSum:0,perfN:0,elo:0,weapons:{},medals:{},recent:[]};
+        map.set(p.steamId,a);
+      }
+      var own=p.team===1?m.team1Score:m.team2Score, opp=p.team===1?m.team2Score:m.team1Score;
+      var res=own>opp?"W":own<opp?"L":"D";
+      a.games++; if(res==="W")a.wins++; else if(res==="L")a.losses++; else a.draws++;
+      a.kills+=p.kills||0; a.deaths+=p.deaths||0;
+      a.dmgDealt+=p.damageDealt||0; a.dmgTaken+=p.damageTaken||0; a.rounds+=p.rounds||0;
+      if(typeof p.performance==="number"){a.perfSum+=p.performance;a.perfN++}
+      if(typeof p.eloChange==="number") a.elo+=p.eloChange;
+      Object.keys(p.weapons||{}).forEach(function(w){
+        var x=p.weapons[w], t=a.weapons[w]||(a.weapons[w]={hits:0,shots:0,kills:0,damage:0});
+        t.hits+=x.hits||0;t.shots+=x.shots||0;t.kills+=x.kills||0;t.damage+=x.damage||0;
+      });
+      Object.keys(p.medals||{}).forEach(function(k){a.medals[k]=(a.medals[k]||0)+p.medals[k]});
+      if(a.recent.length<10) a.recent.push({m:m,p:p,res:res,own:own,opp:opp});
+    });
+  });
+  map.forEach(function(a){
+    var hits=0,shots=0;
+    Object.keys(a.weapons).forEach(function(w){hits+=a.weapons[w].hits;shots+=a.weapons[w].shots});
+    a.acc=pct(hits,shots);
+    a.kd=a.kills/Math.max(1,a.deaths);
+    a.winPct=pct(a.wins,a.games);
+    a.dpr=a.rounds?a.dmgDealt/a.rounds:0;
+    a.perf=a.perfN?a.perfSum/a.perfN:0;
+  });
+  return map;
+}
+
+/* ---------- ranking ---------- */
+var COLS=[
+ {k:"name",l:"Guerrero",t:"Nombre",txt:true},
+ {k:"games",l:"Part.",t:"Partidas jugadas"},
+ {k:"wins",l:"V",t:"Victorias"},
+ {k:"losses",l:"D",t:"Derrotas"},
+ {k:"winPct",l:"% V",t:"Porcentaje de victorias"},
+ {k:"kd",l:"K/D",t:"Kills por muerte"},
+ {k:"dpr",l:"Daño/ronda",t:"Daño infligido por ronda"},
+ {k:"acc",l:"Precisión",t:"Precisión total de armas"},
+ {k:"perf",l:"Rend.",t:"Rendimiento promedio"},
+ {k:"elo",l:"ΔELO",t:"ELO ganado o perdido en total"}
+];
+function cell(a,k){
+  switch(k){
+    case "games":return nf0.format(a.games);
+    case "wins":return '<span class="pos">'+nf0.format(a.wins)+'</span>';
+    case "losses":return '<span class="neg">'+nf0.format(a.losses)+'</span>';
+    case "winPct":return nf0.format(a.winPct)+'%';
+    case "kd":return nf2.format(a.kd);
+    case "dpr":return nf0.format(a.dpr);
+    case "acc":return a.acc?nf1.format(a.acc)+'%':'<span class="dim">—</span>';
+    case "perf":return a.perfN?nf1.format(a.perf):'<span class="dim">—</span>';
+    case "elo":return a.elo?'<span class="'+(a.elo>0?"pos":"neg")+'">'+signed(a.elo)+'</span>':'<span class="dim">0</span>';
+  }
+}
+function renderRank(){
+  var box=$("#rankbox");
+  var q=$("#q").value.trim().toLowerCase();
+  var rows=Array.from(AGG.values()).filter(function(a){return !q||a.name.toLowerCase().indexOf(q)>-1});
+  if(!AGG.size){
+    box.innerHTML='<div class="empty"><b>El Dragón aún duerme</b>Todavía no hay partidas registradas. Apenas se juegue en el servidor de SkF, aparecerán aquí solas.</div>';
+    return;
+  }
+  var k=sort.key, d=sort.dir;
+  rows.sort(function(a,b){
+    var x=a[k],y=b[k];
+    if(typeof x==="string") return d*x.localeCompare(y,"es");
+    return d*(x-y)||(b.wins-a.wins)||(b.games-a.games);
+  });
+  var medals=["🥇","🥈","🥉"];
+  var head=COLS.map(function(c){
+    var s=sort.key===c.k?(sort.dir>0?"ascending":"descending"):"none";
+    return '<th scope="col" aria-sort="'+s+'"><button type="button" data-k="'+c.k+'" title="'+esc(c.t)+'">'+esc(c.l)+'</button></th>';
+  }).join("");
+  var body=rows.map(function(a,i){
+    var rank=(sort.key==="wins"&&sort.dir<0&&!q&&i<3)?'<span class="medal">'+medals[i]+'</span>':(i+1);
+    var tds=COLS.slice(1).map(function(c){return "<td>"+cell(a,c.k)+"</td>"}).join("");
+    return '<tr tabindex="0" data-id="'+esc(a.steamId)+'"><td>'+rank+'</td><td class="name">'+(a.clan?'<span class="tag">['+esc(a.clan)+']</span>':'')+esc(a.name)+'</td>'+tds+'</tr>';
+  }).join("");
+  box.innerHTML='<table><thead><tr><th scope="col">#</th>'+head+'</tr></thead><tbody>'+(body||'<tr><td colspan="'+(COLS.length+1)+'" class="empty">Nadie coincide con esa búsqueda.</td></tr>')+'</tbody></table>';
+}
+
+/* ---------- partidas ---------- */
+function teamTable(m,team){
+  var ps=(m.players||[]).filter(function(p){return p.team===team}).sort(function(a,b){return (b.score||0)-(a.score||0)});
+  if(!ps.length) return '<p class="dim">Sin datos</p>';
+  return '<table><thead><tr><th>Guerrero</th><th>K/D</th><th>Daño</th><th>Rend.</th><th>ΔELO</th></tr></thead><tbody>'+
+   ps.map(function(p){
+     var e=typeof p.eloChange==="number"&&p.eloChange?'<span class="'+(p.eloChange>0?"pos":"neg")+'">'+signed(p.eloChange)+'</span>':'<span class="dim">—</span>';
+     return '<tr tabindex="0" data-id="'+esc(p.steamId)+'"><td>'+esc(clean(p.name))+'</td><td>'+(p.kills||0)+'/'+(p.deaths||0)+'</td><td>'+nf0.format(p.damageDealt||0)+'</td><td>'+(typeof p.performance==="number"?nf1.format(p.performance):"—")+'</td><td>'+e+'</td></tr>';
+   }).join("")+'</tbody></table>';
+}
+function renderMatches(){
+  var list=MATCHES.filter(function(m){return !m.aborted});
+  var box=$("#mlist");
+  if(!list.length){
+    box.innerHTML='<div class="empty tablebox"><b>Sin partidas todavía</b>Cuando se juegue en el servidor de SkF, se mostrarán aquí.</div>';
+    $("#more").hidden=true;return;
+  }
+  var open=Array.from(box.querySelectorAll("details[open]")).map(function(d){return d.dataset.id});
+  box.innerHTML=list.slice(0,shown).map(function(m){
+    var dur=fmtDur(m.duration);
+    return '<details class="match" data-id="'+esc(m.id)+'"'+(open.indexOf(m.id)>-1?" open":"")+'><summary><span class="m-map">'+esc(pretty(m.map))+(m.gameType?'<span class="badge">'+esc(m.gameType)+'</span>':'')+'</span>'+
+      '<span class="m-score"><span class="r">'+nf0.format(m.team1Score)+'</span> – <span class="b">'+nf0.format(m.team2Score)+'</span></span>'+
+      '<span class="m-sub">'+esc(fmtDate(m.playedAt))+(dur?' · '+dur+' min':'')+' · '+(m.players||[]).length+' guerreros</span></summary>'+
+      '<div class="teams"><div class="team"><h4><i style="background:var(--loss)"></i>Equipo rojo</h4>'+teamTable(m,1)+'</div><div class="team"><h4><i style="background:var(--cyan)"></i>Equipo azul</h4>'+teamTable(m,2)+'</div></div></details>';
+  }).join("");
+  $("#more").hidden=list.length<=shown;
+}
+
+/* ---------- resumen ---------- */
+function renderKpis(){
+  var played=MATCHES.filter(function(m){return !m.aborted});
+  var maps={};played.forEach(function(m){maps[m.map]=(maps[m.map]||0)+1});
+  var fav=Object.keys(maps).sort(function(a,b){return maps[b]-maps[a]})[0];
+  var last=played[0];
+  $("#kpis").innerHTML=
+   '<div class="kpi"><small>Partidas</small><b>'+nf0.format(played.length)+'</b></div>'+
+   '<div class="kpi"><small>Guerreros</small><b>'+nf0.format(AGG.size)+'</b></div>'+
+   '<div class="kpi"><small>Mapa favorito</small><b class="sm">'+(fav?esc(pretty(fav)):"—")+'</b></div>'+
+   '<div class="kpi"><small>Última partida</small><b class="sm">'+(last?esc(fmtDate(last.playedAt)):"—")+'</b></div>';
+}
+
+/* ---------- perfil ---------- */
+function openProfile(id,push){
+  var a=AGG.get(id); if(!a) return;
+  var ws=Object.keys(a.weapons).filter(function(w){return a.weapons[w].shots>0}).sort(function(x,y){return a.weapons[y].shots-a.weapons[x].shots});
+  var wHtml=ws.length?ws.map(function(w){
+    var t=a.weapons[w],ac=pct(t.hits,t.shots);
+    return '<div class="wrow"><span><b>'+esc(w)+'</b> · '+esc(WEAPONS[w]||w)+'</span><div class="bar" role="img" aria-label="Precisión '+nf0.format(ac)+'%"><span style="width:'+Math.min(100,ac).toFixed(1)+'%"></span></div><span class="val"><b>'+nf1.format(ac)+'%</b> · '+nf0.format(t.kills)+' kills</span></div>';
+  }).join(""):'<p class="dim">Sin datos de armas.</p>';
+  var md=Object.keys(a.medals).sort(function(x,y){return a.medals[y]-a.medals[x]});
+  var mHtml=md.length?'<div class="chips">'+md.map(function(k){return '<span class="chip">'+esc(MEDALS[k]||k)+' <b>×'+nf0.format(a.medals[k])+'</b></span>'}).join("")+'</div>':'<p class="dim">Sin medallas todavía.</p>';
+  var form=a.recent.slice().reverse().map(function(r){return '<i class="'+r.res.toLowerCase()+'" title="'+({W:"Victoria",L:"Derrota",D:"Empate"})[r.res]+'"></i>'}).join("");
+  var rec=a.recent.map(function(r){
+    var p=r.p,e=typeof p.eloChange==="number"&&p.eloChange?'<span class="'+(p.eloChange>0?"pos":"neg")+'">'+signed(p.eloChange)+'</span>':'<span class="dim">—</span>';
+    return '<tr><td>'+esc(fmtDate(r.m.playedAt))+'</td><td>'+esc(pretty(r.m.map))+'</td><td class="'+(r.res==="W"?"pos":r.res==="L"?"neg":"dim")+'">'+({W:"Victoria",L:"Derrota",D:"Empate"})[r.res]+' '+r.own+'–'+r.opp+'</td><td>'+(p.kills||0)+'/'+(p.deaths||0)+'</td><td>'+nf0.format(p.damageDealt||0)+'</td><td>'+e+'</td></tr>';
+  }).join("");
+  $("#profile").innerHTML='<div class="pbox">'+
+   '<div class="phead"><div><h2>'+(a.clan?'<span class="tag">['+esc(a.clan)+']</span> ':'')+esc(a.name)+'</h2><p>'+nf0.format(a.games)+' partidas · <a href="https://steamcommunity.com/profiles/'+encodeURIComponent(a.steamId)+'" target="_blank" rel="noopener noreferrer">Perfil de Steam</a></p></div>'+
+   '<button class="close" type="button" id="pclose">Cerrar</button></div>'+
+   '<div class="stats">'+
+     '<div class="stat"><small>Victorias</small><b class="pos">'+nf0.format(a.wins)+'</b></div>'+
+     '<div class="stat"><small>Derrotas</small><b class="neg">'+nf0.format(a.losses)+'</b></div>'+
+     '<div class="stat"><small>% Victorias</small><b>'+nf0.format(a.winPct)+'%</b></div>'+
+     '<div class="stat"><small>K/D</small><b>'+nf2.format(a.kd)+'</b></div>'+
+     '<div class="stat"><small>Daño/ronda</small><b>'+nf0.format(a.dpr)+'</b></div>'+
+     '<div class="stat"><small>Precisión</small><b>'+(a.acc?nf1.format(a.acc)+"%":"—")+'</b></div>'+
+     '<div class="stat"><small>Rendimiento</small><b>'+(a.perfN?nf1.format(a.perf):"—")+'</b></div>'+
+     '<div class="stat"><small>ΔELO total</small><b class="'+(a.elo>0?"pos":a.elo<0?"neg":"")+'">'+signed(a.elo)+'</b></div>'+
+   '</div>'+
+   '<h3 class="sec">Forma reciente <span class="dim">(la más nueva a la derecha)</span></h3><div class="form">'+form+'</div>'+
+   '<h3 class="sec">Precisión por arma</h3>'+wHtml+
+   '<h3 class="sec">Medallas</h3>'+mHtml+
+   '<h3 class="sec">Últimas partidas</h3><div class="scroll"><table class="recent"><thead><tr><th>Fecha</th><th>Mapa</th><th>Resultado</th><th>K/D</th><th>Daño</th><th>ΔELO</th></tr></thead><tbody>'+rec+'</tbody></table></div>'+
+  '</div>';
+  var d=$("#profile");
+  if(!d.open){ if(d.showModal) d.showModal(); else d.setAttribute("open",""); }
+  $("#pclose").addEventListener("click",function(){d.close()});
+  if(push) history.replaceState(null,"","#jugador="+encodeURIComponent(id));
+}
+
+/* ---------- eventos ---------- */
+$("#rankbox").addEventListener("click",function(e){
+  var b=e.target.closest("button[data-k]");
+  if(b){var k=b.dataset.k; if(sort.key===k) sort.dir=-sort.dir; else {sort.key=k;sort.dir=(k==="name")?1:-1} renderRank(); return;}
+  var tr=e.target.closest("tr[data-id]"); if(tr) openProfile(tr.dataset.id,true);
+});
+function rowKey(e){ if(e.key==="Enter"||e.key===" "){var tr=e.target.closest("tr[data-id]"); if(tr){e.preventDefault();openProfile(tr.dataset.id,true)}} }
+$("#rankbox").addEventListener("keydown",rowKey);
+$("#mlist").addEventListener("click",function(e){var tr=e.target.closest("tr[data-id]"); if(tr) openProfile(tr.dataset.id,true)});
+$("#mlist").addEventListener("keydown",rowKey);
+$("#q").addEventListener("input",renderRank);
+$("#more").addEventListener("click",function(){shown+=20;renderMatches()});
+$("#profile").addEventListener("click",function(e){if(e.target===this) this.close()});
+$("#profile").addEventListener("close",function(){history.replaceState(null,"",location.pathname+location.search)});
+
+function selectTab(which){
+  var rank=which==="rank";
+  $("#tab-rank").setAttribute("aria-selected",rank);$("#tab-rank").tabIndex=rank?0:-1;
+  $("#tab-matches").setAttribute("aria-selected",!rank);$("#tab-matches").tabIndex=rank?-1:0;
+  $("#view-rank").hidden=!rank;$("#view-matches").hidden=rank;
+}
+$("#tab-rank").addEventListener("click",function(){selectTab("rank")});
+$("#tab-matches").addEventListener("click",function(){selectTab("matches")});
+document.querySelector(".tabs").addEventListener("keydown",function(e){
+  if(e.key==="ArrowRight"||e.key==="ArrowLeft"){var r=$("#tab-rank").getAttribute("aria-selected")==="true";selectTab(r?"matches":"rank");(r?$("#tab-matches"):$("#tab-rank")).focus()}
+});
+
+/* ---------- carga ---------- */
+function applyHash(){
+  var m=/#jugador=([^&]+)/.exec(location.hash);
+  if(m) openProfile(decodeURIComponent(m[1]),false);
+}
+function load(first){
+  fetch(DATA_URL+"?t="+Date.now(),{cache:"no-store"}).then(function(r){
+    if(!r.ok) throw new Error(r.status); return r.json();
+  }).then(function(d){
+    MATCHES=(d.matches||[]).slice().sort(function(a,b){return String(b.playedAt).localeCompare(String(a.playedAt))});
+    UPDATED=d.updatedAt;
+    AGG=aggregate(MATCHES);
+    renderKpis();renderRank();renderMatches();
+    if(first) applyHash();
+  }).catch(function(){
+    if(first){
+      $("#rankbox").innerHTML='<div class="empty"><b>No pude cargar los datos</b>Intenta recargar la página en unos minutos.</div>';
+      $("#kpis").innerHTML="";
+    }
+  });
+}
+load(true);
+window.addEventListener("hashchange",applyHash);
+setInterval(function(){ if(!$("#profile").open && !$("#q").value) load(false); },REFRESH_MS);
+})();
+</script>
+</body>
+</html>
